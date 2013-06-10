@@ -1,0 +1,9 @@
+Header header
+uint16 checksum
+uint8 magic
+uint8 len
+uint8 seq
+uint8 sysid
+uint8 compid
+uint8 msgid
+uint64[] payload
