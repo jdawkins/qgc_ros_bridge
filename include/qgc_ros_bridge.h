@@ -25,18 +25,20 @@
 #define BUFFER_LENGTH 2041 // minimum buffer size that can be used with qnx (I don't know why)
 
 #include "mavlink/v1.0/ardupilotmega/mavlink.h"
-#include "mavlink_msgs/Mavlink.h"
+//#include "mavlink_msgs/Mavlink.h"
+#include "qgc_ros_bridge/Mavlink.h"
 
 #include "ros/ros.h"
 
 
-using namespace mav_msgs;
+//using namespace mav_msgs;
+using namespace qgc_ros_bridge;
 
 
-class qgc_ros_bridge {
+class QGCROSBridge {
 
 public:
-    qgc_ros_bridge();
+    QGCROSBridge();
 
     void receiveFromQGC();
     void sendToQGC(mavlink_message_t msg);
@@ -44,7 +46,7 @@ public:
     void mavMessageCallback(const Mavlink &mav_msg);
     void openUDPPort();
 
-    mavlink_message_t msg_out;
+    mavlink_message_t msg_out_;
 //    mav_msgs::Mavlink mav_ros_msg;
 
 private:
@@ -54,24 +56,28 @@ private:
    void initializeUDPPort();
 
 
-   char target_ip[100];
+   char target_ip_[100];
 
-   float position[6];
-   int sock;
-   struct sockaddr_in gcAddr;
-   struct sockaddr_in locAddr;
+   float position_[6];
+   int sock_;
+   struct sockaddr_in gcAddr_;
+   struct sockaddr_in locAddr_;
    //struct sockaddr_in fromAddr;
 
-   ssize_t recsize;
-   socklen_t fromlen;
-   int bytes_sent;
+   ssize_t recsize_;
+   socklen_t fromlen_;
+   int bytes_sent_;
 
    //uint16_t len;
 
-   ros::NodeHandle nh;
-   ros::Publisher comPub;
-   ros::Subscriber comSub;
-
+   ros::NodeHandle nh_;
+   ros::Publisher comPub_;
+   ros::Subscriber comSub1_;
+   ros::Subscriber comSub2_;
+   ros::Subscriber comSub3_;
+   ros::Subscriber comSub4_;
+   ros::Subscriber comSub5_;
+   ros::Subscriber comSub6_;
 };
 
 

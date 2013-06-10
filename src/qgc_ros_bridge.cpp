@@ -42,97 +42,112 @@ static inline void createROSFromMavlink(const mavlink_message_t* mavlink_msg, Ma
 }
 
 
-qgc_ros_bridge::qgc_ros_bridge(){
+QGCROSBridge::QGCROSBridge(){
 
-comPub = nh.advertise<Mavlink>("/mav_qgc",1000);
-comSub = nh.subscribe("/mav_data",1000,&qgc_ros_bridge::mavMessageCallback,this);
+comPub_ = nh_.advertise<Mavlink>("/mav_qgc",1000);
+comSub1_ = nh_.subscribe("/ArduPilot_1/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub2_ = nh_.subscribe("/ArduPilot_2/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub3_ = nh_.subscribe("/ArduPilot_3/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub4_ = nh_.subscribe("/ArduPilot_4/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub5_ = nh_.subscribe("/ArduPilot_5/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub6_ = nh_.subscribe("/ArduPilot_6/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 
 
-    sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sock_ = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     initializeUDPPort();
 
 }
 
-void qgc_ros_bridge::initializeUDPPort(){
+void QGCROSBridge::initializeUDPPort(){
 
-    strcpy(target_ip, "127.0.0.1");
+    //strcpy(target_ip, "127.0.0.1");
+    strcpy(target_ip_,"10.22.243.162");
 
-    memset(&locAddr, 0, sizeof(locAddr));
-    locAddr.sin_family = AF_INET;
-    locAddr.sin_addr.s_addr = INADDR_ANY;
-    locAddr.sin_port = htons(14551);
+    memset(&locAddr_, 0, sizeof(locAddr_));
+    locAddr_.sin_family = AF_INET;
+    locAddr_.sin_addr.s_addr = INADDR_ANY;
+    locAddr_.sin_port = htons(14551);
 
-    memset(&gcAddr, 0, sizeof(gcAddr));
-    gcAddr.sin_family = AF_INET;
-    gcAddr.sin_addr.s_addr = inet_addr(target_ip);
-    gcAddr.sin_port = htons(14550);
+    memset(&gcAddr_, 0, sizeof(gcAddr_));
+    gcAddr_.sin_family = AF_INET;
+    gcAddr_.sin_addr.s_addr = inet_addr(target_ip_);
+    gcAddr_.sin_port = htons(14550);
 
 
 }
 
-void qgc_ros_bridge::openUDPPort(){
+void QGCROSBridge::openUDPPort(){
 
 
-    /* Bind the socket to port 14551 - necessary to receive packets from qgroundcontrol */
-    if (-1 == bind(sock,(struct sockaddr *)&locAddr, sizeof(struct sockaddr)))
+    /* Bind the sock_et to port 14551 - necessary to receive packets from qgroundcontrol */
+    if (-1 == bind(sock_,(struct sockaddr *)&locAddr_, sizeof(struct sockaddr)))
     {
         perror("error bind failed");
-        close(sock);
+        close(sock_);
         exit(EXIT_FAILURE);
     }
 
     /* Attempt to make it non blocking */
-    if (fcntl(sock, F_SETFL, O_NONBLOCK | FASYNC) < 0)
+    if (fcntl(sock_, F_SETFL, O_NONBLOCK | FASYNC) < 0)
     {
         fprintf(stderr, "error setting nonblocking: %s\n", strerror(errno));
-        close(sock);
+        close(sock_);
         exit(EXIT_FAILURE);
     }
 
 
 }
-void qgc_ros_bridge::sendToQGC(mavlink_message_t msg){
+void QGCROSBridge::sendToQGC(mavlink_message_t msg){
 
     uint8_t buf[BUFFER_LENGTH];
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-    bytes_sent = sendto(sock, buf, len, 0, (struct sockaddr*)&gcAddr, sizeof(struct sockaddr_in));
+
+    printf("Message to QGC: ");
+    for (int i=0;i<len;i++){
+
+        uint8_t temp = buf[i];
+        printf("%02x ", (unsigned char)temp);
+    }
+    printf("\n");
+    bytes_sent_ = sendto(sock_, buf, len, 0, (struct sockaddr*)&gcAddr_, sizeof(struct sockaddr_in));
 
 }
 
-void qgc_ros_bridge::receiveFromQGC(){
+void QGCROSBridge::receiveFromQGC(){
 
     uint8_t buf[BUFFER_LENGTH];
 
     memset(buf, 0, BUFFER_LENGTH);
-    recsize = recvfrom(sock, (void *)buf, BUFFER_LENGTH, 0, (struct sockaddr *)&gcAddr, &fromlen);
+    recsize_ = recvfrom(sock_, (void *)buf, BUFFER_LENGTH, 0, (struct sockaddr *)&gcAddr_, &fromlen_);
 
-    if (recsize > 0)
+    if (recsize_ > 0)
     {
         // Something received - print out all bytes and parse packet
         mavlink_message_t msg;
         mavlink_status_t status;
-        mav_msgs::Mavlink mav_ros_msg;
+        qgc_ros_bridge::Mavlink mav_ros_msg;
 
-        printf("Bytes Received: %d\nDatagram: ", (int)recsize);
-        for (int i = 0; i < recsize; ++i)
+      //  printf("Bytes Received: %d\nDatagram: ", (int)recsize);
+        for (int i = 0; i < recsize_; ++i)
         {
+
             uint8_t temp = buf[i];
             printf("%02x ", (unsigned char)temp);
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
             {
                 // Packet received
-                printf("\nReceived packet: SYS: %d, COMP: %d, LEN: %d, MSG ID: %d\n", msg.sysid, msg.compid, msg.len, msg.msgid);
+               // printf("\nReceived packet: SYS: %d, COMP: %d, LEN: %d, MSG ID: %d\n", msg.sysid, msg.compid, msg.len, msg.msgid);
                 createROSFromMavlink(&msg,&mav_ros_msg);
-                comPub.publish(mav_ros_msg);
+                comPub_.publish(mav_ros_msg);
             }
         }
-        printf("\n");
+       // printf("\n");
     }
 
 
 }
 
-void qgc_ros_bridge::mavMessageCallback(const Mavlink &mav_msg){
+void QGCROSBridge::mavMessageCallback(const Mavlink &mav_msg){
 
    mavlink_message_t message;
    createMavlinkFromROS(&mav_msg,&message);
@@ -142,7 +157,7 @@ void qgc_ros_bridge::mavMessageCallback(const Mavlink &mav_msg){
 //   uint8_t buf[BUFFER_LENGTH];
 //   mavlink_msg_heartbeat_pack(1, 200, &msg, MAV_TYPE_HELICOPTER, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
 //   uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-//   bytes_sent = sendto(sock, buf, len, 0, (struct sockaddr*)&gcAddr, sizeof(struct sockaddr_in));
+//   bytes_sent = sendto(sock_, buf, len, 0, (struct sock_addr*)&gcAddr_, sizeof(struct sock_addr_in));
 
 }
 

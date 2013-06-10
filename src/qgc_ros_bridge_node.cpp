@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 
     ros::init(argc,argv,"qgc_bridge");
 
-    qgc_ros_bridge* qgc = new qgc_ros_bridge();
+    QGCROSBridge* qgc = new QGCROSBridge();
    // qgc_ros_bridge qgc;
 
     qgc->openUDPPort();
