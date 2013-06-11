@@ -42,15 +42,30 @@ static inline void createROSFromMavlink(const mavlink_message_t* mavlink_msg, Ma
 }
 
 
-QGCROSBridge::QGCROSBridge(){
+QGCROSBridge::QGCROSBridge(ros::NodeHandle nh){
+
+nh_ = nh;
+
+if(nh_.getParam("target_ip",target_ip_)){
+    ROS_INFO("Got Param: %s",target_ip_.c_str());
+}
+else{
+
+    target_ip_ = "127.0.0.1";
+    ROS_WARN("Failed to get target ip address from Launch File, defaulting to local ip %s \n",target_ip_.c_str());
+}
+
+
 
 comPub_ = nh_.advertise<Mavlink>("/mav_qgc",1000);
-comSub1_ = nh_.subscribe("/ArduPilot_1/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub_ = nh_.subscribe("/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+
+/*comSub1_ = nh_.subscribe("/ArduPilot_1/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 comSub2_ = nh_.subscribe("/ArduPilot_2/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 comSub3_ = nh_.subscribe("/ArduPilot_3/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 comSub4_ = nh_.subscribe("/ArduPilot_4/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 comSub5_ = nh_.subscribe("/ArduPilot_5/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
-comSub6_ = nh_.subscribe("/ArduPilot_6/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comSub6_ = nh_.subscribe("/ArduPilot_6/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);*/
 
 
     sock_ = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -60,9 +75,6 @@ comSub6_ = nh_.subscribe("/ArduPilot_6/mav_data",1000,&QGCROSBridge::mavMessageC
 
 void QGCROSBridge::initializeUDPPort(){
 
-    //strcpy(target_ip, "127.0.0.1");
-    strcpy(target_ip_,"10.22.243.162");
-
     memset(&locAddr_, 0, sizeof(locAddr_));
     locAddr_.sin_family = AF_INET;
     locAddr_.sin_addr.s_addr = INADDR_ANY;
@@ -70,7 +82,7 @@ void QGCROSBridge::initializeUDPPort(){
 
     memset(&gcAddr_, 0, sizeof(gcAddr_));
     gcAddr_.sin_family = AF_INET;
-    gcAddr_.sin_addr.s_addr = inet_addr(target_ip_);
+    gcAddr_.sin_addr.s_addr = inet_addr(target_ip_.c_str());
     gcAddr_.sin_port = htons(14550);
 
 
@@ -79,7 +91,7 @@ void QGCROSBridge::initializeUDPPort(){
 void QGCROSBridge::openUDPPort(){
 
 
-    /* Bind the sock_et to port 14551 - necessary to receive packets from qgroundcontrol */
+    /* Bind the socket to port 14551 - necessary to receive packets from qgroundcontrol */
     if (-1 == bind(sock_,(struct sockaddr *)&locAddr_, sizeof(struct sockaddr)))
     {
         perror("error bind failed");
@@ -102,13 +114,13 @@ void QGCROSBridge::sendToQGC(mavlink_message_t msg){
     uint8_t buf[BUFFER_LENGTH];
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
 
-    printf("Message to QGC: ");
+   /* printf("Message to QGC: ");
     for (int i=0;i<len;i++){
 
         uint8_t temp = buf[i];
         printf("%02x ", (unsigned char)temp);
     }
-    printf("\n");
+    printf("\n");*/
     bytes_sent_ = sendto(sock_, buf, len, 0, (struct sockaddr*)&gcAddr_, sizeof(struct sockaddr_in));
 
 }
@@ -125,14 +137,14 @@ void QGCROSBridge::receiveFromQGC(){
         // Something received - print out all bytes and parse packet
         mavlink_message_t msg;
         mavlink_status_t status;
-        qgc_ros_bridge::Mavlink mav_ros_msg;
+        mavlink_msgs::Mavlink mav_ros_msg;
 
       //  printf("Bytes Received: %d\nDatagram: ", (int)recsize);
         for (int i = 0; i < recsize_; ++i)
         {
 
             uint8_t temp = buf[i];
-            printf("%02x ", (unsigned char)temp);
+            //printf("%02x ", (unsigned char)temp);
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
             {
                 // Packet received

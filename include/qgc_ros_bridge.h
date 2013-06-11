@@ -25,20 +25,20 @@
 #define BUFFER_LENGTH 2041 // minimum buffer size that can be used with qnx (I don't know why)
 
 #include "mavlink/v1.0/ardupilotmega/mavlink.h"
-//#include "mavlink_msgs/Mavlink.h"
-#include "qgc_ros_bridge/Mavlink.h"
+#include "mavlink_msgs/Mavlink.h"
+//#include "qgc_ros_bridge/Mavlink.h"
 
 #include "ros/ros.h"
 
 
-//using namespace mav_msgs;
-using namespace qgc_ros_bridge;
+using namespace mavlink_msgs;
+//using namespace qgc_ros_bridge;
 
 
 class QGCROSBridge {
 
 public:
-    QGCROSBridge();
+    QGCROSBridge(ros::NodeHandle nh);
 
     void receiveFromQGC();
     void sendToQGC(mavlink_message_t msg);
@@ -56,7 +56,8 @@ private:
    void initializeUDPPort();
 
 
-   char target_ip_[100];
+   //char target_ip_[100];
+   std::string target_ip_;
 
    float position_[6];
    int sock_;
@@ -72,6 +73,7 @@ private:
 
    ros::NodeHandle nh_;
    ros::Publisher comPub_;
+   ros::Subscriber comSub_;
    ros::Subscriber comSub1_;
    ros::Subscriber comSub2_;
    ros::Subscriber comSub3_;
