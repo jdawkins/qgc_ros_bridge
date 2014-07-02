@@ -35,8 +35,8 @@ static inline void createROSFromMavlink(const mavlink_message_t* mavlink_msg, Ma
     mavlink_ros_msg->msgid = mavlink_msg->msgid;
 
     for (int i = 0; i < ((MAVLINK_MAX_PAYLOAD_LEN+MAVLINK_NUM_CHECKSUM_BYTES+7)/8); i++){
-
-       (mavlink_ros_msg->payload).push_back(mavlink_msg->payload64[i]);
+    mavlink_ros_msg->payload[i] = mavlink_msg->payload64[i];
+//       (mavlink_ros_msg->payload).push_back(mavlink_msg->payload64[i]);
     }
 
 }
@@ -50,15 +50,15 @@ if(nh_.getParam("target_ip",target_ip_)){
     ROS_INFO("Got Param: %s",target_ip_.c_str());
 }
 else{
-
-    target_ip_ = "127.0.0.1";
+    target_ip_ = "192.168.1.6";
+    //target_ip_ = "127.0.0.1";
     ROS_WARN("Failed to get target ip address from Launch File, defaulting to local ip %s \n",target_ip_.c_str());
 }
 
 
 
-comPub_ = nh_.advertise<Mavlink>("/mav_qgc",1000);
-comSub_ = nh_.subscribe("/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
+comPub_ = nh_.advertise<Mavlink>("/ArduPilot/mav_qgc",1000);
+comSub_ = nh_.subscribe("/ArduPilot/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 
 /*comSub1_ = nh_.subscribe("/ArduPilot_1/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
 comSub2_ = nh_.subscribe("/ArduPilot_2/mav_data",1000,&QGCROSBridge::mavMessageCallback,this);
